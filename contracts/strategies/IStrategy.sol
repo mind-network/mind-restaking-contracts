@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+interface IStrategy {
+    error OwnerCannotWithdrawAssetToken();
+
+    error ZeroValueCheck();
+
+    error ExceededMax();
+
+    error QuickWithdrawalDisabled();
+
+    event Deposit(address indexed user, address indexed receiver, uint256 assetAmount, uint256 shareAmount);
+
+    event RedeemRequest(address indexed user, address indexed receiver, uint256 shareAmount);
+
+    event Redeem(address indexed receiver, uint256 shareAmount, uint256 assetAmount);
+
+    function deposit(uint256 assetAmount) external;
+
+    function requestWithdraw(uint256 assetAmount) external;
+
+    function requestRedeem(uint256 shareAmount) external;
+
+    function redeemFor(address receiver) external;
+
+    function quickWithdraw(uint256 assetAmount) external;
+
+    function getInfo(address user) external returns (uint256, uint256, uint256, uint256, uint256);
+}
