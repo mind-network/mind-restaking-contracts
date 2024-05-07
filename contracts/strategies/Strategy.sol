@@ -99,7 +99,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         if (lockPeriod != 0) {
             revert QuickWithdrawalDisabled();
         }
-        uint256 shareAmount = _convertToShares(assetAmount, Math.Rounding.Floor);
+        uint256 shareAmount = _convertToShares(assetAmount, Math.Rounding.Ceil);
         if (shareAmount == 0) {
             revert ZeroValueCheck();
         }
@@ -111,7 +111,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
      * @notice Submit a request for withdrawal when there is a locking period.
      */
     function requestWithdraw(uint256 assetAmount) external {
-        uint256 shareAmount = _convertToShares(assetAmount, Math.Rounding.Floor);
+        uint256 shareAmount = _convertToShares(assetAmount, Math.Rounding.Ceil);
         requestRedeem(shareAmount);
     }
 
@@ -183,7 +183,9 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
             uint256 newLockPeriod = (newRequestAmount *
                 lockPeriod +
                 pendingRedeemRequest[user] *
-                (pendingRedeemRequestDeadline[user] - block.number)) / (newRequestAmount + pendingRedeemRequest[user]);
+                (pendingRedeemRequestDeadline[user] - block.number)).ceilDiv(
+                    newRequestAmount + pendingRedeemRequest[user]
+                );
             pendingRedeemRequest[user] += newRequestAmount;
             pendingRedeemRequestDeadline[user] = block.number + newLockPeriod;
         }
