@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {IXERC20} from "../tokens/IXERC20.sol";
 import {IStrategy} from "./IStrategy.sol";
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -10,6 +9,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {IMToken} from "./IMToken.sol";
 
 /**
  * @title A general re-staking strategy for MIND remote staking
@@ -19,7 +19,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     using Math for uint256;
 
     IERC20 public assetToken;
-    IXERC20 public shareToken;
+    IMToken public shareToken;
     uint8 internal decimalsOffset;
 
     uint256 public depositAmountMax;
@@ -33,7 +33,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     function initialize(
         address _owner,
         IERC20 _assetToken,
-        IXERC20 _shareToken,
+        IMToken _shareToken,
         uint8 _decimalsOffset
     ) public initializer {
         __Ownable_init(_owner);
@@ -52,12 +52,6 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         depositAmountMax = _depositAmountMax;
         redeemAmountMax = _redeemAmountMax;
     }
-
-    /**
-     * @dev TODO Placeholder for remote staking migration
-     * @notice Restake & Delegate all existing balance of assetToken into MIND Remote Stake Manager
-     */
-    function restakeAllBalance() external onlyOwner {}
 
     /**
      * @notice In case of any airdrop for asset token holders, owner can withdraw and redistribute.
@@ -103,7 +97,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         if (shareAmount == 0) {
             revert ZeroValueCheck();
         }
-        shareToken.burn(_msgSender(), shareAmount);
+        shareToken.burnFrom(_msgSender(), shareAmount);
         SafeERC20.safeTransfer(assetToken, _msgSender(), assetAmount);
     }
 
@@ -148,7 +142,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         }
         claimableRedeemRequest[receiver] = 0;
         uint256 assetAmount = _convertToAssets(shareAmount, Math.Rounding.Floor);
-        shareToken.burn(address(this), shareAmount);
+        shareToken.burn(shareAmount);
         SafeERC20.safeTransfer(assetToken, receiver, assetAmount);
         emit Redeem(receiver, shareAmount, assetAmount);
     }
