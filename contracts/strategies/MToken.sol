@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract MToken is Initializable, ERC20Upgradeable, ERC20BurnableUpgradeable, AccessControlUpgradeable {
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant STRATEGY = keccak256("STRATEGY");
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -28,9 +28,16 @@ contract MToken is Initializable, ERC20Upgradeable, ERC20BurnableUpgradeable, Ac
     }
 
     /**
-     * @notice Only MINTER_ROLE is allowed to perform transfers, mints, and burns
+     * @notice Only STRATEGY is allowed to perform transfers, mints, and burns
      */
-    function _update(address from, address to, uint256 value) internal override onlyRole(MINTER_ROLE){
+    function _update(address from, address to, uint256 value) internal override onlyRole(STRATEGY){
         super._update(from, to, value);
     }
+
+    /**
+     * @notice Gas optimization:
+     *         Bypass allowance check, which is called within transferFrom and burnFrom.
+     *         These two functions can only be invoked by STRATEGY.
+     */
+    function _spendAllowance(address owner, address spender, uint256 value) internal override {}
 }
