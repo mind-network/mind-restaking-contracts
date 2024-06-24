@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import {IStrategy} from "./IStrategy.sol";
@@ -22,13 +22,17 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     IMToken public shareToken;
     uint8 internal decimalsOffset;
 
-    uint256 public depositAmountMax;
-    uint256 public redeemAmountMax;
+    uint256 private depositAmountMax;
+    uint256 private redeemAmountMax;
 
-    uint256 public lockPeriod;
-    mapping(address => uint256) public pendingRedeemRequest;
-    mapping(address => uint256) public claimableRedeemRequest;
-    mapping(address => uint256) public pendingRedeemRequestDeadline;
+    uint256 private lockPeriod;
+    mapping(address => uint256) private pendingRedeemRequest;
+    mapping(address => uint256) private claimableRedeemRequest;
+    mapping(address => uint256) private pendingRedeemRequestDeadline;
+    uint256 public totalAssetsCap;
+
+    // storage gap for upgrade
+    uint256[40] private __gap;
 
     function initialize(
         address _owner,
@@ -45,12 +49,22 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         decimalsOffset = _decimalsOffset;
         depositAmountMax = type(uint256).max;
         redeemAmountMax = type(uint256).max;
+        totalAssetsCap = type(uint256).max;
     }
 
-    function setup(uint256 _lockPeriod, uint256 _depositAmountMax, uint256 _redeemAmountMax) external onlyOwner {
+    function setup(uint256 _lockPeriod, uint256 _depositAmountMax, uint256 _redeemAmountMax, uint256 _totalAssetsCap) external onlyOwner {
         lockPeriod = _lockPeriod;
         depositAmountMax = _depositAmountMax;
         redeemAmountMax = _redeemAmountMax;
+        totalAssetsCap = _totalAssetsCap;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /**
@@ -66,9 +80,12 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     /**
      * @notice Deposit asset token into the strategy.
      */
-    function deposit(uint256 assetAmount) external whenNotPaused nonReentrant {
+    function deposit(uint256 assetAmount) public virtual whenNotPaused nonReentrant {
         if (assetAmount > depositAmountMax) {
             revert ExceededMax();
+        }
+        if (totalAssets() + assetAmount > totalAssetsCap) {
+            revert ExceededTotalAssetsCap();
         }
         _depositFor(_msgSender(), assetAmount, _msgSender());
     }
@@ -89,11 +106,14 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     /**
      * @notice When there is no locking period, users can withdraw directly.
      */
-    function quickWithdraw(uint256 assetAmount) external whenNotPaused nonReentrant {
+    function quickWithdraw(uint256 assetAmount) public virtual whenNotPaused nonReentrant {
         if (lockPeriod != 0) {
             revert QuickWithdrawalDisabled();
         }
         uint256 shareAmount = _convertToShares(assetAmount, Math.Rounding.Ceil);
+        if (shareAmount > redeemAmountMax) {
+            revert ExceededMax();
+        }
         if (shareAmount == 0) {
             revert ZeroValueCheck();
         }
@@ -112,7 +132,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     /**
      * @notice Submit a request for redemption when there is a locking period.
      */
-    function requestRedeem(uint256 shareAmount) public whenNotPaused nonReentrant {
+    function requestRedeem(uint256 shareAmount) public virtual whenNotPaused nonReentrant {
         if (shareAmount > redeemAmountMax) {
             revert ExceededMax();
         }
@@ -134,7 +154,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
     /**
      * @notice Completes redemption for receiver when locking period is over.
      */
-    function redeemFor(address receiver) external whenNotPaused nonReentrant {
+    function redeemFor(address receiver) external virtual whenNotPaused nonReentrant {
         _updateRedeemLockPeriod(receiver, 0);
         uint256 shareAmount = claimableRedeemRequest[receiver];
         if (shareAmount == 0) {
