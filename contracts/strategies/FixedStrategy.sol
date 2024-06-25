@@ -31,7 +31,7 @@ contract FixedStrategy is IFixedStrategy, Strategy {
 
     function deposit(uint256 assetAmount) public override(IStrategy, Strategy) {
         if (!isCampaignActive()) {
-            revert();
+            revert DepositOnlyDuringCampaign();
         }
         if (assetAmount < minBalance) {
             uint256 prevShareBalance = shareToken.balanceOf(_msgSender());
