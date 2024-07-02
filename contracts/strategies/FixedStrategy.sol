@@ -18,6 +18,7 @@ contract FixedStrategy is IFixedStrategy, Strategy {
     function setCampaignParam(uint256 _campaignUntil, uint256 _minBalance) external onlyOwner {
         campaignUntil = _campaignUntil;
         minBalance = _minBalance;
+        emit SetCampaignParam(_campaignUntil, _minBalance);
     }
 
     function getCampaignParam() external view returns (uint256 _campaignUntil, uint256 _minBalance) {

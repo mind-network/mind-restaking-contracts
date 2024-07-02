@@ -18,6 +18,10 @@ interface IStrategy {
 
     event Redeem(address indexed receiver, uint256 shareAmount, uint256 assetAmount);
 
+    event QuickWithdraw(address indexed user, uint256 assetAmount, uint256 shareAmount);
+
+    event Setup(uint256 lockPeriod, uint256 depositAmountMax, uint256 redeemAmountMax, uint256 totalAssetsCap);
+
     function deposit(uint256 assetAmount) external;
 
     function requestWithdraw(uint256 assetAmount) external;

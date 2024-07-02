@@ -52,11 +52,22 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         totalAssetsCap = type(uint256).max;
     }
 
-    function setup(uint256 _lockPeriod, uint256 _depositAmountMax, uint256 _redeemAmountMax, uint256 _totalAssetsCap) external onlyOwner {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function setup(
+        uint256 _lockPeriod,
+        uint256 _depositAmountMax,
+        uint256 _redeemAmountMax,
+        uint256 _totalAssetsCap
+    ) external onlyOwner {
         lockPeriod = _lockPeriod;
         depositAmountMax = _depositAmountMax;
         redeemAmountMax = _redeemAmountMax;
         totalAssetsCap = _totalAssetsCap;
+        emit Setup(_lockPeriod, _depositAmountMax, _redeemAmountMax, _totalAssetsCap);
     }
 
     function pause() external onlyOwner {
@@ -119,6 +130,7 @@ contract Strategy is IStrategy, OwnableUpgradeable, PausableUpgradeable, Reentra
         }
         shareToken.burnFrom(_msgSender(), shareAmount);
         SafeERC20.safeTransfer(assetToken, _msgSender(), assetAmount);
+        emit QuickWithdraw(_msgSender(), assetAmount, shareAmount);
     }
 
     /**
